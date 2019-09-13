@@ -1,0 +1,122 @@
+@import url("https://fonts.googleapis.com/css?family=Nunito|Muli|Oxygen&display=swap");
+body {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  background-color: #ebfffb;
+  font-family: "oxygen", sans-serif;
+}
+
+.navbar {
+  padding: 0 60px;
+  background-color: #032535;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar .left {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.navbar .left img {
+  margin-right: 10px;
+  width: 40px;
+}
+
+.navbar .left .logoname {
+  color: #ebfffb;
+  font-size: 1.5rem;
+  font-family: "Nunito", sans-serif;
+}
+
+.dot {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  font-size: 25px;
+  color: #ebfffb;
+  line-height: 40px;
+  text-align: center;
+  background: #ff5858;
+  cursor: pointer;
+}
+
+.maincontent {
+  height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.innercontainer {
+  text-align: center;
+  padding: 30px;
+}
+
+.innercontainer .logo {
+  width: 60px;
+}
+
+.innercontainer img {
+  width: 80px;
+}
+
+.buttonarea {
+  display: flex;
+  margin-top: 40px;
+  justify-content: space-around;
+}
+
+.buttonarea div {
+  cursor: pointer;
+}
+
+.buttonarea p {
+  margin: 0;
+  color: #032535;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.innercontainer h1 {
+  margin-top: 20px;
+  color: #032535;
+  line-height: 3rem;
+  font-size: 2.3rem;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 500px) {
+  .innercontainer .logo {
+    width: 55px;
+  }
+  .innercontainer h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  .innercontainer img {
+    width: 70px;
+  }
+  .buttonarea {
+    margin: 30px;
+    flex-direction: column;
+  }
+  .buttonarea div {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  .buttonarea p {
+    transform: translateX(-18px);
+    padding: 8px 30px;
+    width: 100%;
+    text-align: start;
+    font-size: 1.2rem;
+    background-color: #61234e;
+    color: #ebfffb;
+    border-radius: 15px;
+  }
+}
