@@ -4,7 +4,7 @@
   "description": "An application that allows users to share large files using webrtc",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "node server.js"
   },
   "author": "Abhishek",
   "license": "ISC",
