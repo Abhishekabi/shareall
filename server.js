@@ -17,7 +17,6 @@ const url = require("./config/setup").mongoURL;
 
 //Importing routes
 const auth = require("./routes/api/auth");
-// const search = require("./routes/public/search");
 const profile = require("./routes/api/profile");
 
 // Middleware for bodyparser
@@ -44,7 +43,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //using the routes
-// app.use("/public/search", search);
 app.use("/api/auth", auth);
 app.use("/api/profile", profile);
 
