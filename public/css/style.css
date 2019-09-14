@@ -7,40 +7,67 @@ body {
   font-family: "oxygen", sans-serif;
 }
 
-.navbar {
-  padding: 0 60px;
+.mynavbar {
+  padding: 15px 60px;
   background-color: #032535;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.navbar .left {
+.mynavbar .left {
   display: flex;
   align-items: center;
   cursor: pointer;
 }
 
-.navbar .left img {
+.mynavbar .right {
+  display: flex;
+  align-items: center;
+}
+
+.mynavbar .left img {
   margin-right: 10px;
   width: 40px;
 }
 
-.navbar .left .logoname {
+.mynavbar .left .logoname {
   color: #ebfffb;
   font-size: 1.5rem;
   font-family: "Nunito", sans-serif;
 }
 
-.dot {
+.usercircle {
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  font-size: 25px;
+  font-size: 20px;
   color: #ebfffb;
   line-height: 40px;
   text-align: center;
   background: #ff5858;
+  cursor: pointer;
+}
+
+.orangebtn {
+  background: #ff5858;
+  margin-right: 10px;
+}
+
+.greenbtn {
+  background: #50c8b0;
+}
+
+.button {
+  border: none;
+  color: white;
+  padding: 10px 25px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 0 6px;
+  border-radius: 20px;
   cursor: pointer;
 }
 
@@ -89,7 +116,30 @@ body {
   letter-spacing: 1px;
 }
 
+.modal-content {
+  margin-top: 25vh;
+}
+
 @media (max-width: 500px) {
+  .mynavbar {
+    padding: 10px 30px;
+  }
+  .mynavbar .right {
+    flex-direction: column;
+  }
+  .greenbtn {
+    background: none;
+    margin: 5px 0;
+    padding: 0;
+  }
+  .greenbtn:hover {
+    padding: 0;
+    color: #aab4b2;
+    text-decoration: underline;
+  }
+  .innercontainer {
+    padding: 20px;
+  }
   .innercontainer .logo {
     width: 55px;
   }
