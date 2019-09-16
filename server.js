@@ -5,11 +5,13 @@ const session = require("express-session");
 const exphdl = require("express-handlebars");
 const mongoose = require("mongoose");
 const passport = require("passport");
+const favicon = require("express-favicon");
 
 const PORT = process.env.PORT || 3000;
 
 var app = express();
 const url = require("./config/setup").mongoURL;
+app.use(favicon(__dirname + "/public/favicon.png"));
 
 // // middlewares for handlebars
 // app.engine('handlebars', exphdl({ defaultLayout: 'main' }));
