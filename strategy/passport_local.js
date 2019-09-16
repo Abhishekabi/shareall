@@ -11,7 +11,7 @@ module.exports = function(passport) {
         .then(user => {
           if (!user) {
             console.log("incorrect user");
-            return done(null, false);
+            return done(null, false, { error: "incorrect user" });
           }
           bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) throw err;
@@ -20,7 +20,7 @@ module.exports = function(passport) {
               return done(null, user);
             } else {
               console.log("incorrect password");
-              return done(null, false);
+              return done(null, false, { error: "incorrect password" });
             }
           });
         })

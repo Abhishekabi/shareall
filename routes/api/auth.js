@@ -14,7 +14,8 @@ router.post("/register", (req, res) => {
   PeerUser.findOne({ email: req.body.email })
     .then(user => {
       if (user) {
-        res.status(400).json({ emailerror: "Email is already registered" });
+        // change status code
+        res.json({ emailerror: "Email is already registered" });
       } else {
         const newUser = new PeerUser({
           name: req.body.name,
@@ -42,13 +43,26 @@ router.post("/register", (req, res) => {
 
 // @type    - POST
 // @route   - /api/auth/login
-// @desc    - for freelancer login
+// @desc    - for user login
 // @access  - PUBLIC
-router.post("/login", (req, res, next) => {
-  passport.authenticate("local", {
-    successRedirect: "/api/profile",
-    failureRedirect: "/",
-    failureFlash: false
+// router.post("/login", passport.authenticate("local"), function(req, res) {
+//   res.json({ message: "login successful" });
+// });
+
+router.post("/login", function(req, res, next) {
+  passport.authenticate("local", function(err, user, info) {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res.json({ message: info.error });
+    }
+    req.logIn(user, function(err) {
+      if (err) {
+        return next(err);
+      }
+      return res.redirect("/api/profile");
+    });
   })(req, res, next);
 });
 

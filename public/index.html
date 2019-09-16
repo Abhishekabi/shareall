@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <link rel="stylesheet" href="./css/style.css" />
     <!-- Font Awesome -->
     <link
@@ -100,31 +102,13 @@
           <div class="modal-body mx-3">
             <div class="md-form mb-5">
               <i class="fas fa-user prefix grey-text"></i>
-              <input
-                type="text"
-                id="orangeForm-name"
-                class="form-control validate"
-              />
-              <label
-                data-error="wrong"
-                data-success="right"
-                for="orangeForm-name"
-                >Your name</label
-              >
+              <input type="text" id="orangeForm-name" class="form-control" />
+              <label for="orangeForm-name">Your name</label>
             </div>
             <div class="md-form mb-5">
               <i class="fas fa-envelope prefix grey-text"></i>
-              <input
-                type="email"
-                id="orangeForm-email"
-                class="form-control validate"
-              />
-              <label
-                data-error="wrong"
-                data-success="right"
-                for="orangeForm-email"
-                >Your email</label
-              >
+              <input type="email" id="orangeForm-email" class="form-control" />
+              <label for="orangeForm-email">Your email</label>
             </div>
 
             <div class="md-form mb-4">
@@ -132,18 +116,15 @@
               <input
                 type="password"
                 id="orangeForm-pass"
-                class="form-control validate"
+                class="form-control"
               />
-              <label
-                data-error="wrong"
-                data-success="right"
-                for="orangeForm-pass"
-                >Your password</label
-              >
+              <label for="orangeForm-pass">Your password</label>
             </div>
           </div>
           <div class="modal-footer d-flex justify-content-center">
-            <button class="btn btn-deep-orange">Sign up</button>
+            <button id="signupsubmit" class="btn btn-deep-orange">
+              Sign up
+            </button>
           </div>
         </div>
       </div>
@@ -173,11 +154,7 @@
           <div class="modal-body mx-3">
             <div class="md-form mb-5">
               <i class="fas fa-envelope prefix grey-text"></i>
-              <input
-                type="email"
-                id="defaultForm-email"
-                class="form-control validate"
-              />
+              <input type="email" id="defaultForm-email" class="form-control" />
               <label
                 data-error="wrong"
                 data-success="right"
@@ -191,7 +168,7 @@
               <input
                 type="password"
                 id="defaultForm-pass"
-                class="form-control validate"
+                class="form-control"
               />
               <label
                 data-error="wrong"
@@ -202,17 +179,13 @@
             </div>
           </div>
           <div class="modal-footer d-flex justify-content-center">
-            <button class="btn btn-default">Login</button>
+            <button id="loginsubmit" class="btn btn-default">Login</button>
           </div>
         </div>
       </div>
     </div>
   </body>
-  <!-- JQuery -->
-  <script
-    type="text/javascript"
-    src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"
-  ></script>
+  <script type="text/javascript" src="./js/client.js"></script>
   <!-- Bootstrap tooltips -->
   <script
     type="text/javascript"
