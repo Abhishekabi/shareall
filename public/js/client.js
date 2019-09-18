@@ -1,12 +1,24 @@
+// UI handlers
+var mediaQueries = function(x) {
+  var ele = $("nav").find("[login_div]");
+  if (x.matches) {
+    ele.text("Already a user? Login");
+  } else {
+    ele.text("Login");
+  }
+};
+var minWindowWidth = window.matchMedia("(max-width: 500px)");
+minWindowWidth.addListener(mediaQueries);
+
 let registerForm = $("#modalRegisterForm");
 let registerCloseBtn = registerForm.find('[aria-label="Close"]');
-let submitSignup = registerForm.find("#signupsubmit");
+let signupButton = registerForm.find("#signupsubmit");
 
 let loginForm = $("#modalLoginForm");
 let loginCloseBtn = loginForm.find('[aria-label="Close"]');
-let submitLogin = loginForm.find("#loginsubmit");
+let loginButton = loginForm.find("#loginsubmit");
 
-submitSignup.on("click", event => {
+signupButton.on("click", event => {
   let name = $("#orangeForm-name");
   let email = $("#orangeForm-email");
   let pass = $("#orangeForm-pass");
@@ -19,6 +31,7 @@ submitSignup.on("click", event => {
       password: pass.val()
     },
     success: function(data, status, xhr) {
+      registerCloseBtn.click();
       console.log(data);
     },
     error: function(jqXhr, textStatus, errorMessage) {
@@ -29,7 +42,7 @@ submitSignup.on("click", event => {
   name = email = pass = "";
 });
 
-submitLogin.on("click", event => {
+loginButton.on("click", event => {
   let email = $("#defaultForm-email");
   let pass = $("#defaultForm-pass");
   $.ajax(`/api/auth/login`, {
@@ -39,6 +52,7 @@ submitLogin.on("click", event => {
       password: pass.val()
     },
     success: function(data, status, xhr) {
+      loginCloseBtn.click();
       console.log(data);
     },
     error: function(jqXhr, textStatus, errorMessage) {
@@ -50,5 +64,6 @@ submitLogin.on("click", event => {
 });
 
 var handleError = function(data) {
+  // notify error to user
   console.log(data);
 };
