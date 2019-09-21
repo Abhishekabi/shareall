@@ -11,11 +11,12 @@ const PORT = process.env.PORT || 3000;
 
 var app = express();
 const url = require("./config/setup").mongoURL;
+const secret = require("./config/setup").secret;
 app.use(favicon(__dirname + "/public/favicon.png"));
 
 // // middlewares for handlebars
-// app.engine('handlebars', exphdl({ defaultLayout: 'main' }));
-// app.set('view engine', 'handlebars');
+app.engine("handlebars", exphdl({ defaultLayout: "main" }));
+app.set("view engine", "handlebars");
 
 //Importing routes
 const auth = require("./routes/api/auth");
@@ -34,7 +35,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // Express session midleware
 app.use(
   session({
-    secret: "secret",
+    secret: secret,
     resave: true,
     saveUninitialized: true
   })
@@ -56,9 +57,14 @@ mongoose
   })
   .catch(err => console.log("Error : " + err));
 
-//test route
+//home route
 app.get("/", (req, res) => {
-  res.render("index");
+  var user = {};
+  if (req.user) {
+    user.isLoggedIn = true;
+    user.initial = "a";
+  }
+  res.render("home", { user });
 });
 
 app.listen(PORT, () => console.log("Server running at port 3000..."));
