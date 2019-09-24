@@ -7,7 +7,7 @@ body {
 }
 
 .mynavbar {
-  padding: 15px 60px;
+  padding: 15px 120px;
   background-color: #032535;
   display: flex;
   align-items: center;
@@ -32,6 +32,7 @@ body {
 
 .mynavbar .left .logoname {
   color: #ebfffb;
+  margin-bottom: 0px;
   font-size: 1.5rem;
   font-family: "Nunito", sans-serif;
 }
@@ -70,11 +71,77 @@ body {
   cursor: pointer;
 }
 
-.maincontent {
-  height: 90vh;
+.dropbox {
+  width: 300px;
+  margin: 10px 80px 0 0;
+  padding: 30px 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  align-self: flex-end;
+  background-color: white;
+}
+
+.dropbox > .usercircle {
+  width: 95px;
+  height: 95px;
+  font-size: 45px;
+  line-height: 90px;
+  flex: 1;
+  margin: 0 10px 0 10px;
+}
+
+.dropbox > .dropbox-content {
+  flex: 2;
+  overflow: hidden;
+}
+
+.dropbox-content > .username {
+  font-size: 1.7rem;
+  line-height: 2rem;
+  font-weight: 400;
+  text-align: center;
+}
+
+.dropbox-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-direction: row;
+}
+
+.dropbox-btn > button,
+.dropbox-btn > div {
+  font-size: 15px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.logout-btn {
+  padding: 6px 20px;
+  border-radius: 20px;
+  background-color: #284553;
+  color: white;
+  border: none;
+}
+
+.dN {
+  visibility: hidden;
+}
+
+.DN {
+  display: none;
+}
+
+.shadow {
+  box-shadow: 3px 3px 5px 6px #ccc;
+}
+
+.maincontent {
+  /* height: 65vh; */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .innercontainer {
@@ -126,6 +193,16 @@ body {
   .mynavbar .right {
     flex-direction: column;
   }
+  .mynavbar .left img {
+    margin-right: 10px;
+    width: 30px;
+  }
+  .mynavbar .right form {
+    display: inline;
+  }
+  .mynavbar .left .logoname {
+    font-size: 1.2rem;
+  }
   .greenbtn {
     background: none;
     margin: 5px 0;
@@ -137,7 +214,7 @@ body {
     text-decoration: underline;
   }
   .innercontainer {
-    padding: 20px;
+    padding: 30px;
   }
   .innercontainer .logo {
     width: 55px;
@@ -167,5 +244,8 @@ body {
     background-color: #61234e;
     color: #ebfffb;
     border-radius: 15px;
+  }
+  .dropbox {
+    display: none;
   }
 }

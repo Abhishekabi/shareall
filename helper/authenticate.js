@@ -5,8 +5,6 @@ module.exports = {
     if (req.isAuthenticated()) {
       return next();
     }
-    console.log("not authenticated");
-
-    res.redirect("/");
+    res.send("Error : Unable to access this route without authentication");
   }
 };

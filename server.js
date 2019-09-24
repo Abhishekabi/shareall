@@ -62,7 +62,8 @@ app.get("/", (req, res) => {
   var user = {};
   if (req.user) {
     user.isLoggedIn = true;
-    user.initial = "a";
+    user.initial = req.user.name.charAt(0).toLowerCase();
+    console.log(req.user);
   }
   res.render("home", { user });
 });

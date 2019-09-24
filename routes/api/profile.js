@@ -7,16 +7,16 @@ const PeerUser = require("../../models/peeruser");
 // @type    - GET
 // @route   - /api/profile
 // @desc    - displays the user profile
-// @access  - PUBLIC
+// @access  - PRIVATE
 router.get("/", ensureAuthenticated, (req, res) => {
   res.redirect("/");
 });
 
-// @type    - get
+// @type    - POST
 // @route   - /api/profile/logout
 // @desc    - for user logout
 // @access  - PRIVATE
-router.get("/logout", (req, res) => {
+router.post("/logout", ensureAuthenticated, (req, res) => {
   req.logout();
   res.redirect("/");
 });
