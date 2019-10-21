@@ -26,13 +26,13 @@ router.post("/register", (req, res) => {
         bcrypt.genSalt(10, (err, salt) => {
           bcrypt.hash(newUser.password, salt, (err, hash) => {
             if (err) {
-              console.log("Error : " + err);
+              console.log("Password Error : " + err);
             } else {
               newUser.password = hash;
               newUser
                 .save()
                 .then(user => res.redirect("/"))
-                .catch(err => console.log("Error : " + err));
+                .catch(err => console.log("DB Error : " + err));
             }
           });
         });

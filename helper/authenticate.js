@@ -5,6 +5,8 @@ module.exports = {
     if (req.isAuthenticated()) {
       return next();
     }
-    res.send("Error : Unable to access this route without authentication");
+    res.json({
+      error: "Unable to access private route without authentication"
+    });
   }
 };
