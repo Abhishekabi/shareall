@@ -9,7 +9,7 @@ const PeerUser = require("../../models/peeruser");
 // @desc    - displays the user profile
 // @access  - PRIVATE
 router.get("/", ensureAuthenticated, (req, res) => {
-  res.redirect("/");
+  res.redirect("/profile");
 });
 
 // @type    - GET

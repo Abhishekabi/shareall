@@ -10,6 +10,11 @@ const favicon = require("express-favicon");
 const PORT = process.env.PORT || 3000;
 
 var app = express();
+const http = require("http").createServer(app);
+// socketio connection
+var io = require("socket.io")(http);
+const { ensureAuthenticated } = require("./helper/authenticate");
+
 const url = require("./config/setup").mongoURL;
 const secret = require("./config/setup").secret;
 app.use(favicon(__dirname + "/public/favicon.png"));
@@ -68,4 +73,27 @@ app.get("/", (req, res) => {
   res.render("home", { user });
 });
 
-app.listen(PORT, () => console.log("Server running at port 3000..."));
+app.get("/profile", ensureAuthenticated, (req, res) => {
+  var user = {};
+  if (req.user) {
+    user.isLoggedIn = true;
+    user.initial = req.user.name.charAt(0).toLowerCase();
+  }
+  res.render("profile", { user });
+});
+
+io.on("connection", socket => {
+  console.log("a user connected");
+  socket.on("disconnect", function() {
+    console.log("user disconnected");
+  });
+  socket.on("join", function(data) {
+    var uid = data.id;
+    socket.join(uid, () => {
+      // check if oly two users in a room
+      io.to(uid).emit("new_msg", { msg: "helloo..." }); // broadcast to everyone in the room
+    });
+  });
+});
+
+http.listen(PORT, () => console.log("Server running at port 3000..."));

@@ -9,6 +9,9 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <!-- Local css -->
     <link rel="stylesheet" href="./css/style.css" />
+    {{#if user.isLoggedIn}}
+    <link rel="stylesheet" href="./css/profile.css" />
+    {{/if}}
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" />
     <!-- Bootstrap core CSS -->
@@ -117,9 +120,32 @@
             {{/if}}
         </div>
     </nav>
-    {{{body}}}
+    <!-- main section -->
+    <section class="maincontent">
+        <!-- usercircle dropdown -->
+        <div id="dropdown-menu" class="dropbox shadow dN">
+            <div class="usercircle">a</div>
+            <div class="dropbox-content">
+                <p class="username">Abhishek</p>
+                <div class="dropbox-btn">
+                    <div>Profile</div>
+                    <form action="/api/profile/logout" method="post">
+                        <button class="logout-btn">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {{{body}}}
+    </section>
 </body>
 <script type="text/javascript" src="./js/client.js"></script>
+{{#if user.isLoggedIn}}
+<!-- socket.io -->
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="./js/socketconfig.js"></script>
+<script type="text/javascript" src="./js/fileshareconnection.js"></script>
+<script type="text/javascript" src="./js/fileshare.js"></script>
+{{/if}}
 <!-- Bootstrap tooltips -->
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.4/umd/popper.min.js"></script>
 <!-- Bootstrap core JavaScript -->
