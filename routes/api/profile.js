@@ -35,12 +35,16 @@ router.get("/me", ensureAuthenticated, (req, res) => {
 });
 
 // @type    - GET
-// @route   - /api/profile/search?key={email}
+// @route   - /api/profile/search?email={email} || /api/profile/search?id={id}
 // @desc    - for user search
 // @access  - PUBLIC
 router.get("/search", (req, res) => {
-  PeerUser.findOne({}, "_id name email isonline")
-    .or([{ _id: req.query.key }, { email: req.query.key }])
+  var id = req.query.id;
+  var email = req.query.email;
+  var obj = {};
+  if (id && id != null) obj = { _id: id };
+  else obj = { email: email };
+  PeerUser.findOne(obj, "_id name email isonline")
     .then(user => {
       console.log(req.body.uid);
       console.log(user);
