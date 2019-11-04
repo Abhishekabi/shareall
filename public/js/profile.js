@@ -39,7 +39,7 @@ FileShareTemplate = {
     var button_ele = `<input id="file-upload" type="file" style="display:none" />
                       <label for="file-upload" class="button send-btn">Select File</label>`;
     $.ajax({
-      url: `/api/profile/search?key=${uid}`,
+      url: `/api/profile/id?key=${uid}`,
       type: "GET",
       dataType: "json",
       async: false,
@@ -122,7 +122,7 @@ FileShareAPI = {
   },
   searchUser: function(email) {
     $.ajax({
-      url: `/api/profile/search?key=${email}`,
+      url: `/api/profile/search?email=${email}`,
       type: "GET",
       dataType: "json",
       success: function(resp) {
