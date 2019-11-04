@@ -145,7 +145,7 @@ FileShareImpl = {
     // unfriend handler
     $("[unfriendButton]").on("click", event => {
       event.stopPropagation();
-      if (confirm(`Do you want to delete this contact ?`)) {
+      if (confirm(`Do you want to remove this contact ?`)) {
         var ele = $(event.target).parent();
         var uid = ele.attr("uid");
         FileShareAPI.unfriend(uid);
