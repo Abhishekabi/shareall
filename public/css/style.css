@@ -79,7 +79,7 @@ body {
   align-items: center;
   align-self: flex-end;
   background-color: white;
-  position: absolute;
+  position: relative;
   z-index: 1;
   left: 82%;
 }

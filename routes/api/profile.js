@@ -12,14 +12,6 @@ router.get("/", ensureAuthenticated, (req, res) => {
   res.redirect("/profile");
 });
 
-// @type    - GET
-// @route   - /api/profile/info
-// @desc    - returns the user information
-// @access  - PRIVATE
-router.get("/info", ensureAuthenticated, (req, res) => {
-  res.json(req.user);
-});
-
 // @type    - POST
 // @route   - /api/profile/logout
 // @desc    - for user logout
@@ -30,17 +22,32 @@ router.post("/logout", ensureAuthenticated, (req, res) => {
 });
 
 // @type    - GET
+// @route   - /api/profile/me
+// @desc    - returns the user information
+// @access  - PRIVATE
+router.get("/me", ensureAuthenticated, (req, res) => {
+  var data = {
+    uid: req.user._id,
+    name: req.user.name,
+    email: req.user.email
+  };
+  res.json(data);
+});
+
+// @type    - GET
 // @route   - /api/profile/search?key={email}
 // @desc    - for user search
 // @access  - PUBLIC
 router.get("/search", (req, res) => {
-  PeerUser.find({ email: req.query.key })
+  PeerUser.findOne({}, "_id name email isonline")
+    .or([{ _id: req.query.key }, { email: req.query.key }])
     .then(user => {
+      console.log(req.body.uid);
       console.log(user);
       if (!user || user.length <= 0) {
         res.json({ usernotfound: "No profiles here" });
       } else {
-        res.send(user);
+        res.json(user);
       }
     })
     .catch(err => console.log(err));

@@ -1,9 +1,12 @@
 var socket = io();
+// global object to store loggedin user details
+var $user = {};
 // get userId
-$.ajax("/api/profile/info", {
+$.ajax("/api/profile/me", {
   dataType: "json",
   success: function(data, status, xhr) {
-    var uid = data._id;
+    $user = data;
+    var uid = data.uid;
     socket.emit("join", { id: uid });
   },
   error: function(jqXhr, textStatus, errorMessage) {
