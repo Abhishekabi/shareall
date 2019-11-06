@@ -1,3 +1,4 @@
+var global = {}; // socketid vs uid
 const express = require("express");
 const bodyParser = require("body-parser");
 const path = require("path");
@@ -6,7 +7,6 @@ const exphdl = require("express-handlebars");
 const mongoose = require("mongoose");
 const passport = require("passport");
 const favicon = require("express-favicon");
-var global = {};
 const PeerUser = require("./models/peeruser");
 
 const PORT = process.env.PORT || 3000;
@@ -68,7 +68,6 @@ mongoose
 
 //home route
 app.get("/", (req, res) => {
-  var user = {};
   if (req.user) {
     res.redirect("/profile");
   } else res.render("home");
@@ -81,36 +80,57 @@ app.get("/profile", ensureAuthenticated, (req, res) => {
     user.initial = req.user.name.charAt(0).toLowerCase();
     user.name = req.user.name;
   }
-  var uid = req.user._id;
-  global[uid] = "";
   res.render("profile", { user });
-  // socket code
-  io.on("connection", socket => {
-    // user connected (online)
-    global[uid] = socket.id;
-    PeerUser.findOneAndUpdate({ _id: uid }, { $set: { isonline: true } })
-      .then(user => {})
-      .catch(err => console.log(err));
+});
 
-    socket.on("disconnect", function() {
-      console.log("user disconnected");
-      for (let [uid, sid] of Object.entries(global)) {
-        if (socket.id == sid) {
-          delete global[uid];
-          PeerUser.findOneAndUpdate({ _id: uid }, { $set: { isonline: false } })
-            .then(user => {})
-            .catch(err => console.log(err));
-        }
-      }
-    });
-    socket.on("join", function(data) {
-      var uid = data.id;
-      socket.join(uid, () => {
-        // check if only two users in a room
-        io.to(uid).emit("new_msg", { msg: "helloo..." }); // broadcast to everyone in the room
-      });
+// socket code
+io.on("connection", socket => {
+  socket.on("disconnect", function() {
+    var disconnectedUid = helper.removeSocketById(socket.id);
+    if (!helper.hasOtherSession(disconnectedUid)) {
+      helper.setOnline(disconnectedUid, false);
+    }
+  });
+
+  socket.on("join", function(data) {
+    var uid = data.id;
+    global[socket.id] = uid;
+    helper.setOnline(uid, true);
+    socket.join(uid, () => {
+      // check if only two users in a room
+      io.to(uid).emit("new_msg", { msg: "helloo..." }); // broadcast to everyone in the room
     });
   });
 });
+
+var helper = {
+  removeSocketById: function(socketId) {
+    for (let [sid, uid] of Object.entries(global)) {
+      if (socketId == sid) {
+        delete global[socketId];
+        return uid;
+      }
+    }
+  },
+
+  hasOtherSession: function(userId) {
+    for (let [sid, uid] of Object.entries(global)) {
+      if (uid == userId) return true;
+    }
+    return false;
+  },
+
+  setOnline: function(uid, isonline) {
+    PeerUser.findOneAndUpdate(
+      { _id: uid },
+      { $set: { isonline } },
+      { useFindAndModify: false, new: true }
+    )
+      .then(user =>
+        console.log(user.name + " is " + (isonline ? " online" : " offline"))
+      )
+      .catch(err => console.log(err));
+  }
+};
 
 http.listen(PORT, () => console.log("Server running at port 3000..."));
