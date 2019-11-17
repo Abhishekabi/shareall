@@ -16,15 +16,7 @@ const userSchema = new Schema({
   },
   friends: [
     {
-      uid: {
-        type: String
-      },
-      name: {
-        type: String
-      },
-      email: {
-        type: String
-      }
+      type: String
     }
   ],
   isonline: {

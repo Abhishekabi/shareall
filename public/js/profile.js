@@ -25,8 +25,10 @@ $(window).on("load", function() {
 });
 
 FileShareTemplate = {
-  friendList: function(uid, name, initial) {
+  friendList: function(uid, name, initial, isonline) {
+    var classname = isonline ? "" : "status-offline";
     return `<div class="contact" uid="${uid}">
+              <div class="status ${classname}"></div>
               <div class="user-img">${initial}</div>
               <div class="user-name" uname>${name}</div>
               <div unfriendButton class="options"></div>
@@ -101,21 +103,21 @@ FileShareAPI = {
       type: "GET",
       dataType: "json",
       success: function(res) {
+        console.log(res);
         $user.friends = res;
         FileShareImpl.updateUI(res);
       }
     });
   },
-  addFriend: function({ _id, name, email }) {
+  addFriend: function(uid) {
     $.ajax({
       url: "/api/friends",
       type: "PUT",
       dataType: "json",
-      data: { uid: _id, name: name, email: email },
+      data: { uid },
       success: function(res) {
         if (!res.error) {
-          $user.friends = res;
-          FileShareImpl.updateUI(res);
+          FileShareAPI.getFriends();
         }
       }
     });
@@ -126,7 +128,8 @@ FileShareAPI = {
       type: "GET",
       dataType: "json",
       success: function(resp) {
-        if (!resp.usernotfound && resp != null) FileShareAPI.addFriend(resp);
+        if (!resp.usernotfound && resp != null)
+          FileShareAPI.addFriend(resp._id);
       }
     });
   },
@@ -162,6 +165,7 @@ FileShareImpl = {
       var ele = $(event.currentTarget);
       var uid = ele.attr("uid");
       var name = ele.find("[uname]").text();
+      $fshare.currentChatUserId = uid;
       var html = FileShareTemplate.shareArea(uid, name, name.charAt(0));
       $(".right-pannel").empty();
       $(".right-pannel").append(html);
@@ -184,9 +188,11 @@ FileShareImpl = {
     // show friendlist
     for (var i = 0; i < friends.length; i++) {
       var uname = friends[i].name;
-      var uid = friends[i].uid;
+      var uid = friends[i]._id;
+      var isonline = friends[i].isonline;
       var html =
-        html + FileShareTemplate.friendList(uid, uname, uname.charAt(0), true);
+        html +
+        FileShareTemplate.friendList(uid, uname, uname.charAt(0), isonline);
     }
     $(".contacts").empty();
     $(".contacts").append(html);

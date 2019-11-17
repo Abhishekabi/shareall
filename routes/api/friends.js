@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const { ensureAuthenticated } = require("../../helper/authenticate");
 
 const PeerUser = require("../../models/peeruser");
@@ -9,10 +10,9 @@ const PeerUser = require("../../models/peeruser");
 // @desc    - adds new friend to the list
 // @access  - PRIVATE
 router.put("/", ensureAuthenticated, (req, res) => {
-  var { uid, name, email } = req.body;
-  var friend = { uid, name, email };
+  var friend = req.body.uid;
   PeerUser.findOneAndUpdate(
-    { _id: req.user._id, "friends.uid": { $ne: friend.uid } },
+    { _id: req.user._id, friends: { $ne: friend } },
     { $push: { friends: friend } },
     { useFindAndModify: false, new: true }
   )
@@ -30,13 +30,17 @@ router.put("/", ensureAuthenticated, (req, res) => {
 // @access  - PRIVATE
 router.delete("/", ensureAuthenticated, (req, res) => {
   var { uid } = req.body;
-  PeerUser.findOneAndUpdate(
-    { _id: req.user.id },
-    { $pull: { friends: { uid: uid } } },
-    { useFindAndModify: false, new: true }
-  )
-    .then(friends => {
-      res.send(friends);
+  PeerUser.findOne({ _id: req.user.id }, "friends")
+    .then(friendlist => {
+      var updatedList = friendlist.friends.filter(friendId => {
+        return friendId != uid;
+      });
+      PeerUser.updateOne(
+        { _id: req.user.id },
+        { $set: { friends: updatedList } }
+      )
+        .then(user => res.json(user))
+        .catch(err => console.log(err));
     })
     .catch(err => console.log(err));
 });
@@ -48,7 +52,12 @@ router.delete("/", ensureAuthenticated, (req, res) => {
 router.get("/", ensureAuthenticated, (req, res) => {
   PeerUser.findOne({ _id: req.user.id }, "friends")
     .then(doc => {
-      res.send(doc.friends);
+      var friends = doc.friends;
+      console.log(friends);
+      var tempArr = friends;
+      PeerUser.find({ _id: { $in: tempArr } }, "_id name isonline email")
+        .then(friendlist => res.json(friendlist))
+        .catch();
     })
     .catch(err => console.log(err));
 });

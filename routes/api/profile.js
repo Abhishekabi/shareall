@@ -46,8 +46,6 @@ router.get("/search", (req, res) => {
   else obj = { email: email };
   PeerUser.findOne(obj, "_id name email isonline")
     .then(user => {
-      console.log(req.body.uid);
-      console.log(user);
       if (!user || user.length <= 0) {
         res.json({ usernotfound: "No profiles here" });
       } else {

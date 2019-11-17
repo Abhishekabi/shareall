@@ -88,14 +88,14 @@ io.on("connection", socket => {
   socket.on("disconnect", function() {
     var disconnectedUid = helper.removeSocketById(socket.id);
     if (!helper.hasOtherSession(disconnectedUid)) {
-      helper.setOnline(disconnectedUid, false);
+      helper.setOnline(disconnectedUid, false, socket);
     }
   });
 
   socket.on("join", function(data) {
     var uid = data.id;
     global[socket.id] = uid;
-    helper.setOnline(uid, true);
+    helper.setOnline(uid, true, socket);
     socket.join(uid, () => {
       // check if only two users in a room
       io.to(uid).emit("new_msg", { msg: "helloo..." }); // broadcast to everyone in the room
@@ -120,15 +120,16 @@ var helper = {
     return false;
   },
 
-  setOnline: function(uid, isonline) {
+  setOnline: function(uid, isonline, socket) {
     PeerUser.findOneAndUpdate(
       { _id: uid },
       { $set: { isonline } },
       { useFindAndModify: false, new: true }
     )
-      .then(user =>
-        console.log(user.name + " is " + (isonline ? " online" : " offline"))
-      )
+      .then(user => {
+        console.log(user.name + " is " + (isonline ? " online" : " offline"));
+        socket.broadcast.emit("online", { uid, isonline });
+      })
       .catch(err => console.log(err));
   }
 };
