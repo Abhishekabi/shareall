@@ -210,7 +210,7 @@ FileShareRTCConnection.prototype = {
 
     peerConnection
       .setRemoteDescription(
-        this._getRTCSessionDescriptionObj("offer", this._remoteSDP.sdp)
+        this._getRTCSessionDescriptionObj("offer", this._remoteSDP)
       )
       .then(function() {
         peerConnection.createAnswer(sdpConstraints).then(function(answer) {
@@ -333,12 +333,11 @@ FileShareRTCConnection.prototype = {
 
   _sendFiles: function() {
     var peerConnection = this._connection;
-
-    var bytesPerChunk = 16384;
+    var bytesPerChunk = FileShare.BYTES_PER_CHUNK;
     var files = this._files;
     var fileReader = new FileReader();
-    // var fileShareSession = FileShare.getSession(this._connectionId);
-    var fileIndex = 0;
+    var fileShareSession = FileShare.getSession(this._connectionId);
+    var fileIndex = fileShareSession.getCurrentFileIndex();
 
     var readNextChunk = function(file) {
       var start = bytesPerChunk * this._currentFileChunk;
@@ -348,13 +347,13 @@ FileShareRTCConnection.prototype = {
 
     var fileReaderOnLoad = function(event) {
       var data = event.target.result;
-      if (files.length <= 0) {
+      if (typeof fileShareSession == "undefined" || files.length <= 0) {
         return;
       }
       var currIndex = fileIndex + 1;
       // FileShareImpl.updateFileInfo(this._connectionId);
 
-      var totalChunks = Math.ceil(files.size / bytesPerChunk);
+      var totalChunks = Math.ceil(files[fileIndex].size / bytesPerChunk);
       var sendChannel = this._dataChannel;
       var toSend = new Uint8Array(data.byteLength + 1);
       toSend.set([this._currentFileChunk], 0);
@@ -379,34 +378,35 @@ FileShareRTCConnection.prototype = {
 
       var bytesSent = bytesPerChunk * this._currentFileChunk;
       // check if a file is sent completely
-      if (bytesSent < files.size) {
-        readNextChunk(files);
+      if (bytesSent < files[fileIndex].size) {
+        readNextChunk(files[fileIndex]);
       } else {
-        // fileIndex = fileShareSession.updateFileIndex();
+        fileIndex = fileShareSession.updateFileIndex();
         // check if there is any files in queue
         if (fileIndex < files.length) {
           this._currentFileChunk = 0;
-          readNextChunk(files);
+          readNextChunk(files[fileIndex]);
         }
+        console.log("send success...");
       }
     }.bind(this);
 
     fileReader.onload = fileReaderOnLoad;
-    readNextChunk(files);
+    readNextChunk(files[fileIndex]);
   },
 
   _receiveFiles: function(receivedData) {
-    // var fileShareSession = FileShare.getSession(this._connectionId);
-    // if (typeof fileShareSession == "undefined") {
-    //   return;
-    // }
-    var fileIndex = 0;
+    var fileShareSession = FileShare.getSession(this._connectionId);
+    if (typeof fileShareSession == "undefined") {
+      return;
+    }
+    var fileIndex = fileShareSession.getCurrentFileIndex();
     var currIndex = fileIndex + 1;
-    // var metadata = fileShareSession.getMetaData();
+    var metadata = fileShareSession.getMetaData();
     // FileShareImpl.updateFileInfo(this._connectionId);
-    // var totalChunks = Math.ceil(
-    //   metadata[fileIndex].size / 16384
-    // );
+    var totalChunks = Math.ceil(
+      metadata[fileIndex].size / FileShare.BYTES_PER_CHUNK
+    );
     var received = new Uint8Array(receivedData);
     var chunkIdReceived = received[0];
 
@@ -427,46 +427,47 @@ FileShareRTCConnection.prototype = {
       return;
     }
     // check if file is completely received
-    // if (this._currentFileChunk == totalChunks) {
-    //   if (fileIndex == metadata.length - 1) {
-    //     // All files are received successfully so send acknowledgement to receiver
-    //     this._handler.handleSent(this._connectionId);
-    //   }
-    //   var file = metadata[fileIndex];
-    //   const received = new Blob(this._dataBuffer);
+    if (this._currentFileChunk == totalChunks) {
+      if (fileIndex == metadata.length - 1) {
+        // All files are received successfully so send acknowledgement to receiver
+        console.log("received successfully...");
+        this._handler.handleSent(this._connectionId);
+      }
+      var file = metadata[fileIndex];
+      const received = new Blob(this._dataBuffer);
 
-    //   // automatically downloads the file
-    //   if (navigator.msSaveBlob) {
-    //     // For ie and Edge
-    //     return navigator.msSaveBlob(received, file.name);
-    //   } else {
-    //     var link = document.createElement("a");
-    //     link.href = URL.createObjectURL(received);
-    //     link.download = file.name;
-    //     document.body.appendChild(link);
-    //     link.dispatchEvent(
-    //       new MouseEvent("click", {
-    //         bubbles: true,
-    //         cancelable: true,
-    //         view: window
-    //       })
-    //     );
-    //     link.remove();
-    //     URL.revokeObjectURL(link.href);
-    //   }
+      // automatically downloads the file
+      if (navigator.msSaveBlob) {
+        // For ie and Edge
+        return navigator.msSaveBlob(received, file.name);
+      } else {
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(received);
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.dispatchEvent(
+          new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          })
+        );
+        link.remove();
+        URL.revokeObjectURL(link.href);
+      }
 
-    //   // reset values for next file
-    //   this._dataBuffer = [];
-    //   this._currentFileChunk = 0;
-    //   this._eightBitCounter = 0;
-    //   fileIndex = 1;
-    // }
+      // reset values for next file
+      this._dataBuffer = [];
+      this._currentFileChunk = 0;
+      this._eightBitCounter = 0;
+      fileIndex = fileShareSession.updateFileIndex();
+    }
   },
 
   retryFileShare: function(fileIndex, chunkId) {
-    // this._currentFileChunk = chunkId;
-    // var fileShareSession = FileShare.getSession(this._connectionId);
-    // fileShareSession.updateFileIndex();
+    this._currentFileChunk = chunkId;
+    var fileShareSession = FileShare.getSession(this._connectionId);
+    fileShareSession.updateFileIndex();
     this._isIceRestart = true;
     this._initialize();
   }

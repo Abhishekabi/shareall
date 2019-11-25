@@ -291,6 +291,8 @@ FileShareEventHandler = {
 
     transfer_completed: function(connId) {
       FileShareAPI.terminate(connId);
+      FileShare.close(connId);
+      FileShare.removeSession(connId);
     },
 
     retry: function(connId, data) {
@@ -336,8 +338,8 @@ FileShare = {
     var fileShareSession = FileShare.getSession(connectionId);
     if (typeof fileShareSession !== "undefined") {
       // remove UI
+      FileShare.resetForm(fileShareSession.isCurrentUser());
       delete this._activeSessions[connectionId];
-      FileShare.resetForm();
     }
   },
 
@@ -411,8 +413,8 @@ FileShare = {
     return this.getUserSessionCount(receiverId) >= 2;
   },
 
-  resetForm: function() {
-    console.log("Reset Form !!");
+  resetForm: function(isCurrentUser) {
+    if (isCurrentUser) $("#file-upload").val("");
   }
 };
 
@@ -460,19 +462,19 @@ FileShareAPI = {
     });
   },
 
-  updateCandidate: function(connectionId, iceCandidate, iceRestart) {
+  updateCandidate: function(connectionId, ice_candidates, iceRestart) {
     socket.emit("serverListening", {
       connectionId,
       purpose: "updateicecandidates",
-      param: { iceCandidate, iceRestart }
+      param: { ice_candidates, iceRestart }
     });
   },
 
-  sendSdp: function(connectionId, sdp, iceCandidate, iceRestart, type) {
+  sendSdp: function(connectionId, sdp, ice_candidates, iceRestart, type) {
     socket.emit("serverListening", {
       connectionId,
       purpose: type,
-      param: { sdp, iceCandidate, iceRestart }
+      param: { sdp, ice_candidates, iceRestart }
     });
   },
 

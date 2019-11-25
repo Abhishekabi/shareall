@@ -1,7 +1,6 @@
 var FileShareTemplate = {};
 var clientAPI = {};
 var FileShareImpl = {};
-var mainFshare;
 
 // global object to store loggedin user details
 var $user = {};
@@ -154,33 +153,6 @@ clientAPI = {
         data: { uid: uid }
       });
     }
-  },
-  peerConnectionEvents: {
-    sendOffer: function(connId, sdp, candidate, iceRestart) {
-      socket.emit("serverListening", {
-        connId,
-        purpose: "offer",
-        param: { sdp, candidate, iceRestart }
-      });
-    },
-    sendAnswer: function(connId, sdp, candidate, iceRestart) {
-      socket.emit("serverListening", {
-        connId,
-        purpose: "answer",
-        param: { sdp, candidate, iceRestart }
-      });
-    },
-    updateIceCandidates: function(connId, candidate, iceRestart) {
-      socket.emit("serverListening", {
-        connId,
-        purpose: "updateice",
-        param: { candidate, iceRestart }
-      });
-    },
-    handleConnected: function(connId, isReconnecting) {},
-    handleFailed: function(connId) {},
-    handleRetry: function(connId, isOffer, currFileChunk) {},
-    handleSent: function(connId) {}
   }
 };
 
@@ -213,28 +185,14 @@ FileShareImpl = {
       socket.emit("join", { id: $fshare.currentChatUserId });
       // bind filepicker event
       $("#file-upload").on("change", function(event) {
-        file = event.target.files[0];
-        if (!file) {
+        file = event.target.files;
+        if (!file || file.length == 0) {
           console.log("No file chosen");
           return;
         } else if (file.size === 0) {
           console.log("File is empty, please select a non-empty file");
           return;
         } else {
-          // mainFshare = new FileShareRTCConnection(
-          //   "room-" + $fshare.currentChatUserId,
-          //   $user.uid,
-          //   clientAPI.peerConnectionEvents,
-          //   {
-          //     url: "turn:numb.viagenie.ca",
-          //     credential: "muazkh",
-          //     username: "webrtc@live.com"
-          //   },
-          //   true,
-          //   null,
-          //   null,
-          //   file
-          // );
           FileShare.initiate($fshare.currentChatUserId, file);
         }
       });
