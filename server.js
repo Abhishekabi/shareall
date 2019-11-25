@@ -113,7 +113,7 @@ io.on("connection", socket => {
 
   socket.on("serverListening", data => {
     console.log(data);
-    socket.broadcast.to(data.connId).emit("clientListening", data); // broadcast to everyone in the room
+    socket.broadcast.to(data.connectionId).emit("clientListening", data); // broadcast to everyone in the room
   });
 });
 

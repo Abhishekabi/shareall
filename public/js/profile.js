@@ -1,5 +1,5 @@
 var FileShareTemplate = {};
-var FileShareAPI = {};
+var clientAPI = {};
 var FileShareImpl = {};
 var mainFshare;
 
@@ -10,14 +10,14 @@ var $fshare = {};
 var addFriend = function() {
   var email = $("#searchBox > input").val();
   if (email.length > 0) {
-    if (email != $user.email) FileShareAPI.crudEvents.searchUser(email);
+    if (email != $user.email) clientAPI.crudEvents.searchUser(email);
   }
   $("#searchBox > input").val("");
 };
 
 $(window).on("load", function() {
-  FileShareAPI.crudEvents.getUserInfo();
-  FileShareAPI.crudEvents.getFriends();
+  clientAPI.crudEvents.getUserInfo();
+  clientAPI.crudEvents.getFriends();
   // search event on keypress
   $("#searchBox > input").on("keypress", function(e) {
     if (e.which == 13) addFriend();
@@ -100,7 +100,7 @@ FileShareTemplate = {
   }
 };
 
-FileShareAPI = {
+clientAPI = {
   crudEvents: {
     getUserInfo: function() {
       $.ajax({
@@ -131,7 +131,7 @@ FileShareAPI = {
         dataType: "json",
         data: { uid },
         success: function(res) {
-          if (!res.error) FileShareAPI.crudEvents.getFriends();
+          if (!res.error) clientAPI.crudEvents.getFriends();
         }
       });
     },
@@ -142,7 +142,7 @@ FileShareAPI = {
         dataType: "json",
         success: function(resp) {
           if (!resp.usernotfound && resp != null)
-            FileShareAPI.crudEvents.addFriend(resp._id);
+            clientAPI.crudEvents.addFriend(resp._id);
         }
       });
     },
@@ -192,7 +192,7 @@ FileShareImpl = {
       if (confirm(`Do you want to remove this contact ?`)) {
         var ele = $(event.target).parent();
         var uid = ele.attr("uid");
-        FileShareAPI.crudEvents.unfriend(uid);
+        clientAPI.crudEvents.unfriend(uid);
         $user.friends.forEach((friend, i) => {
           if (friend.uid == $(".chat-head").attr("uid"))
             $(".right-pannel").empty();
@@ -221,20 +221,21 @@ FileShareImpl = {
           console.log("File is empty, please select a non-empty file");
           return;
         } else {
-          mainFshare = new FileShareRTCConnection(
-            "room-" + $fshare.currentChatUserId,
-            $user.uid,
-            FileShareAPI.peerConnectionEvents,
-            {
-              url: "turn:numb.viagenie.ca",
-              credential: "muazkh",
-              username: "webrtc@live.com"
-            },
-            true,
-            null,
-            null,
-            file
-          );
+          // mainFshare = new FileShareRTCConnection(
+          //   "room-" + $fshare.currentChatUserId,
+          //   $user.uid,
+          //   clientAPI.peerConnectionEvents,
+          //   {
+          //     url: "turn:numb.viagenie.ca",
+          //     credential: "muazkh",
+          //     username: "webrtc@live.com"
+          //   },
+          //   true,
+          //   null,
+          //   null,
+          //   file
+          // );
+          FileShare.initiate($fshare.currentChatUserId, file);
         }
       });
     });

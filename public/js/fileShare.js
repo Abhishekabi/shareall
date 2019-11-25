@@ -365,7 +365,7 @@ FileShare = {
 
     var fileShareSession = new FileShareSession(
       connectionId,
-      $zcg._ZUID,
+      $user.uid,
       recipant,
       peername,
       selectedFiles,
@@ -482,7 +482,7 @@ FileShareAPI = {
       type: "GET",
       dataType: "json",
       success: function(res) {
-        var connectionId = res.connId;
+        var connectionId = "room-" + peer;
         var turnCredentials = res.credentials;
         socket.emit("serverListening", {
           connectionId,

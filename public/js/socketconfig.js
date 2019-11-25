@@ -1,5 +1,4 @@
 var socket = io();
-var fshareConnection;
 
 // listening to incomming API calls to the room
 socket.on("clientListening", data => {

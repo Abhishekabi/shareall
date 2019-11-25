@@ -61,7 +61,6 @@ router.get("/search", (req, res) => {
 // @access  - PRIVATE
 router.get("/fileshare", ensureAuthenticated, (req, res) => {
   var data = {
-    connId: "room-" + req.user._id,
     credentials: {
       url: "turn:numb.viagenie.ca",
       credential: "muazkh",
