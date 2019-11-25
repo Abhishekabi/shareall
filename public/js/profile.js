@@ -1,22 +1,26 @@
 var FileShareTemplate = {};
 var FileShareAPI = {};
 var FileShareImpl = {};
+var mainFshare;
+
+// global object to store loggedin user details
+var $user = {};
+var $fshare = {};
 
 var addFriend = function() {
   var email = $("#searchBox > input").val();
   if (email.length > 0) {
-    if (email != $user.email) FileShareAPI.searchUser(email);
+    if (email != $user.email) FileShareAPI.crudEvents.searchUser(email);
   }
   $("#searchBox > input").val("");
 };
 
 $(window).on("load", function() {
-  FileShareAPI.getFriends();
+  FileShareAPI.crudEvents.getUserInfo();
+  FileShareAPI.crudEvents.getFriends();
   // search event on keypress
   $("#searchBox > input").on("keypress", function(e) {
-    if (e.which == 13) {
-      addFriend();
-    }
+    if (e.which == 13) addFriend();
   });
   // search event on button click
   $("#searchBox > button").on("click", () => {
@@ -38,7 +42,7 @@ FileShareTemplate = {
   shareArea: function(uid, name, initial) {
     var classname = "";
     var text = "select a file to share";
-    var button_ele = `<input id="file-upload" type="file" style="display:none" />
+    var button_ele = `<input id="file-upload" type="file" style="display:none" multiple/>
                       <label for="file-upload" class="button send-btn">Select File</label>`;
     $.ajax({
       url: `/api/profile/search?id=${uid}`,
@@ -97,49 +101,86 @@ FileShareTemplate = {
 };
 
 FileShareAPI = {
-  getFriends: function() {
-    $.ajax({
-      url: "/api/friends",
-      type: "GET",
-      dataType: "json",
-      success: function(res) {
-        console.log(res);
-        $user.friends = res;
-        FileShareImpl.updateUI(res);
-      }
-    });
-  },
-  addFriend: function(uid) {
-    $.ajax({
-      url: "/api/friends",
-      type: "PUT",
-      dataType: "json",
-      data: { uid },
-      success: function(res) {
-        if (!res.error) {
-          FileShareAPI.getFriends();
+  crudEvents: {
+    getUserInfo: function() {
+      $.ajax({
+        url: "/api/profile/me",
+        type: "GET",
+        dataType: "json",
+        success: function(data) {
+          $user = data;
+          socket.emit("createRoom", { id: data.uid });
         }
-      }
-    });
+      });
+    },
+    getFriends: function() {
+      $.ajax({
+        url: "/api/friends",
+        type: "GET",
+        dataType: "json",
+        success: function(res) {
+          $user.friends = res;
+          FileShareImpl.updateUI(res);
+        }
+      });
+    },
+    addFriend: function(uid) {
+      $.ajax({
+        url: "/api/friends",
+        type: "PUT",
+        dataType: "json",
+        data: { uid },
+        success: function(res) {
+          if (!res.error) FileShareAPI.crudEvents.getFriends();
+        }
+      });
+    },
+    searchUser: function(email) {
+      $.ajax({
+        url: `/api/profile/search?email=${email}`,
+        type: "GET",
+        dataType: "json",
+        success: function(resp) {
+          if (!resp.usernotfound && resp != null)
+            FileShareAPI.crudEvents.addFriend(resp._id);
+        }
+      });
+    },
+    unfriend: function(uid) {
+      $.ajax({
+        url: "/api/friends",
+        type: "DELETE",
+        dataType: "json",
+        data: { uid: uid }
+      });
+    }
   },
-  searchUser: function(email) {
-    $.ajax({
-      url: `/api/profile/search?email=${email}`,
-      type: "GET",
-      dataType: "json",
-      success: function(resp) {
-        if (!resp.usernotfound && resp != null)
-          FileShareAPI.addFriend(resp._id);
-      }
-    });
-  },
-  unfriend: function(uid) {
-    $.ajax({
-      url: "/api/friends",
-      type: "DELETE",
-      dataType: "json",
-      data: { uid: uid }
-    });
+  peerConnectionEvents: {
+    sendOffer: function(connId, sdp, candidate, iceRestart) {
+      socket.emit("serverListening", {
+        connId,
+        purpose: "offer",
+        param: { sdp, candidate, iceRestart }
+      });
+    },
+    sendAnswer: function(connId, sdp, candidate, iceRestart) {
+      socket.emit("serverListening", {
+        connId,
+        purpose: "answer",
+        param: { sdp, candidate, iceRestart }
+      });
+    },
+    updateIceCandidates: function(connId, candidate, iceRestart) {
+      socket.emit("serverListening", {
+        connId,
+        purpose: "updateice",
+        param: { candidate, iceRestart }
+      });
+    },
+    handleConnected: function(connId, isReconnecting) {},
+    handleFailed: function(connId) {},
+    handleRetry: function(connId, isOffer, currFileChunk) {},
+    handleSent: function(connId) {}
   }
 };
 
@@ -151,7 +192,7 @@ FileShareImpl = {
       if (confirm(`Do you want to remove this contact ?`)) {
         var ele = $(event.target).parent();
         var uid = ele.attr("uid");
-        FileShareAPI.unfriend(uid);
+        FileShareAPI.crudEvents.unfriend(uid);
         $user.friends.forEach((friend, i) => {
           if (friend.uid == $(".chat-head").attr("uid"))
             $(".right-pannel").empty();
@@ -169,6 +210,7 @@ FileShareImpl = {
       var html = FileShareTemplate.shareArea(uid, name, name.charAt(0));
       $(".right-pannel").empty();
       $(".right-pannel").append(html);
+      socket.emit("join", { id: $fshare.currentChatUserId });
       // bind filepicker event
       $("#file-upload").on("change", function(event) {
         file = event.target.files[0];
@@ -179,7 +221,20 @@ FileShareImpl = {
           console.log("File is empty, please select a non-empty file");
           return;
         } else {
-          console.log("ssss");
+          mainFshare = new FileShareRTCConnection(
+            "room-" + $fshare.currentChatUserId,
+            $user.uid,
+            FileShareAPI.peerConnectionEvents,
+            {
+              url: "turn:numb.viagenie.ca",
+              credential: "muazkh",
+              username: "webrtc@live.com"
+            },
+            true,
+            null,
+            null,
+            file
+          );
         }
       });
     });
@@ -197,5 +252,19 @@ FileShareImpl = {
     $(".contacts").empty();
     $(".contacts").append(html);
     this.bindEvents();
+  },
+  updateOnlineStatus: function({ uid, isonline }) {
+    $user.friends.forEach(friend => {
+      if (friend._id == uid) {
+        var elem = $(`.right-pannel [uid=${uid}]`).find(".status");
+        $fshare.currentChatUserId == uid && isonline
+          ? elem.removeClass("status-offline")
+          : elem.addClass("status-offline");
+        var ele = $(`.contacts [uid=${uid}]`).find(".status");
+        isonline
+          ? ele.removeClass("status-offline")
+          : ele.addClass("status-offline");
+      }
+    });
   }
 };

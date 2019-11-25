@@ -53,7 +53,6 @@ router.get("/", ensureAuthenticated, (req, res) => {
   PeerUser.findOne({ _id: req.user.id }, "friends")
     .then(doc => {
       var friends = doc.friends;
-      console.log(friends);
       var tempArr = friends;
       PeerUser.find({ _id: { $in: tempArr } }, "_id name isonline email")
         .then(friendlist => res.json(friendlist))

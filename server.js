@@ -85,21 +85,35 @@ app.get("/profile", ensureAuthenticated, (req, res) => {
 
 // socket code
 io.on("connection", socket => {
-  socket.on("disconnect", function() {
+  socket.on("disconnect", () => {
     var disconnectedUid = helper.removeSocketById(socket.id);
     if (!helper.hasOtherSession(disconnectedUid)) {
       helper.setOnline(disconnectedUid, false, socket);
     }
   });
 
-  socket.on("join", function(data) {
+  socket.on("createRoom", data => {
     var uid = data.id;
     global[socket.id] = uid;
     helper.setOnline(uid, true, socket);
-    socket.join(uid, () => {
-      // check if only two users in a room
-      io.to(uid).emit("new_msg", { msg: "helloo..." }); // broadcast to everyone in the room
-    });
+    if (!io.nsps["/"].adapter.rooms["room-" + uid]) {
+      socket.join("room-" + uid);
+    }
+  });
+
+  socket.on("join", data => {
+    var uid = data.id;
+    if (io.nsps["/"].adapter.rooms["room-" + uid]) {
+      if (io.nsps["/"].adapter.rooms["room-" + uid].length < 2) {
+        socket.join("room-" + uid);
+        console.log(io.nsps["/"].adapter.rooms);
+      } else console.log("cannot enter room");
+    }
+  });
+
+  socket.on("serverListening", data => {
+    console.log(data);
+    socket.broadcast.to(data.connId).emit("clientListening", data); // broadcast to everyone in the room
   });
 });
 

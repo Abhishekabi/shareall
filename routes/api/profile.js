@@ -55,4 +55,20 @@ router.get("/search", (req, res) => {
     .catch(err => console.log(err));
 });
 
+// @type    - GET
+// @route   - /api/profile/fileshare
+// @desc    - returns the user information
+// @access  - PRIVATE
+router.get("/fileshare", ensureAuthenticated, (req, res) => {
+  var data = {
+    connId: "room-" + req.user._id,
+    credentials: {
+      url: "turn:numb.viagenie.ca",
+      credential: "muazkh",
+      username: "webrtc@live.com"
+    }
+  };
+  res.json(data);
+});
+
 module.exports = router;

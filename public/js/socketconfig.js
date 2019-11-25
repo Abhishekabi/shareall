@@ -1,33 +1,46 @@
 var socket = io();
-// global object to store loggedin user details
-var $user = {};
-var $fshare = {};
-// get userId
-$.ajax("/api/profile/me", {
-  dataType: "json",
-  success: function(data, status, xhr) {
-    $user = data;
-    var uid = data.uid;
-    socket.emit("join", { id: uid });
-  },
-  error: function(jqXhr, textStatus, errorMessage) {
-    console.log(errorMessage);
-  }
+var fshareConnection;
+
+// listening to incomming API calls to the room
+socket.on("clientListening", data => {
+  console.log(data);
+  FileShareEventHandler.socketEvents[data.purpose](data.connId, data.param);
+  // if (purpose == "offer") {
+  //   fshareConnection = new FileShareRTCConnection(
+  //     data.connId,
+  //     $user.uid,
+  //     FshareHandler,
+  //     {
+  //       url: "turn:numb.viagenie.ca",
+  //       credential: "muazkh",
+  //       username: "webrtc@live.com"s
+  //     },
+  //     false,
+  //     data.param.sdp,
+  //     data.param.candidate,
+  //     null
+  //   );
+  // }
+  // if (purpose == "answer") {
+  //   // if(!this.isCurrentUser())
+  //   // {
+  //   // 	// to set sdp and answer in retry cases
+  //   // 	fshareConnection.setRemoteDescriptionAndAnswer(type, remoteSdp, remoteIceCandidate);
+  //   // }
+  //   // else
+  //   // {
+  //   mainFshare.setRemoteDescription(
+  //     "answer",
+  //     data.param.sdp.sdp,
+  //     data.param.candidate
+  //   );
+  //   // }
+  // }
+  // if (purpose == "updateice") {
+  //   fshareConnection.setRemoteIcecandidate(data.param.candidate);
+  // }
 });
-socket.on("new_msg", data => {
-  console.log(data.msg);
-});
+// listening for online status
 socket.on("online", data => {
-  $user.friends.forEach(friend => {
-    if (friend._id == data.uid) {
-      var elem = $(`.right-pannel [uid=${data.uid}]`).find(".status");
-      $fshare.currentChatUserId == data.uid
-        ? elem.removeClass("status-offline")
-        : elem.addClass("status-offline");
-      var ele = $(`.contacts [uid=${data.uid}]`).find(".status");
-      data.isonline
-        ? ele.removeClass("status-offline")
-        : ele.addClass("status-offline");
-    }
-  });
+  FileShareImpl.updateOnlineStatus(data);
 });
