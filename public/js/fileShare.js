@@ -1,6 +1,7 @@
 var FileShareSession = {};
 var FileShareEventHandler = {};
 var FileShare = {};
+var FileShareAPI = {};
 
 var FileShareSession = function(
   connectionId,

@@ -10,5 +10,5 @@ socket.on("clientListening", data => {
 });
 // listening for online status
 socket.on("online", data => {
-  FileShareImpl.updateOnlineStatus(data);
+  userProfileImpl.updateOnlineStatus(data);
 });

@@ -1,6 +1,6 @@
 var FileShareTemplate = {};
 var clientAPI = {};
-var FileShareImpl = {};
+var userProfileImpl = {};
 
 // global object to store loggedin user details
 var $user = {};
@@ -119,7 +119,7 @@ clientAPI = {
         dataType: "json",
         success: function(res) {
           $user.friends = res;
-          FileShareImpl.updateUI(res);
+          userProfileImpl.updateUI(res);
         }
       });
     },
@@ -156,7 +156,7 @@ clientAPI = {
   }
 };
 
-FileShareImpl = {
+userProfileImpl = {
   bindEvents: function() {
     // unfriend handler
     $("[unfriendButton]").on("click", event => {
@@ -194,6 +194,14 @@ FileShareImpl = {
           return;
         } else {
           FileShare.initiate($fshare.currentChatUserId, file);
+        }
+      });
+      // handle close btn click
+      $(".close-chat-btn").on("click", event => {
+        if (confirm(`Do you want to close this chat ?`)) {
+          $fshare.currentChatUserId = "";
+          $(`.right-pannel`).empty();
+          // get out of the room
         }
       });
     });
