@@ -366,11 +366,11 @@ FileShareRTCConnection.prototype = {
         sendChannel.bufferedAmount < 15 * 1024 * 1024
       ) {
         sendChannel.send(toSend.buffer);
-        // FileShareImpl.updateProgressBar(
-        //   this._connectionId,
-        //   this._currentFileChunk,
-        //   totalChunks
-        // );
+        FileShareImpl.updateProgressBar(
+          this._connectionId,
+          this._currentFileChunk,
+          totalChunks
+        );
       } else {
         return;
       }
@@ -413,11 +413,11 @@ FileShareRTCConnection.prototype = {
     if (chunkIdReceived == this._eightBitCounter) {
       var dataChunk = received.slice(1).buffer;
       this._dataBuffer.push(dataChunk);
-      // FileShareImpl.updateProgressBar(
-      //   this._connectionId,
-      //   this._currentFileChunk,
-      //   totalChunks
-      // );
+      FileShareImpl.updateProgressBar(
+        this._connectionId,
+        this._currentFileChunk,
+        totalChunks
+      );
       this._currentFileChunk++;
       this._eightBitCounter++;
       if (chunkIdReceived == 255) {

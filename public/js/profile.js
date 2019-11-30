@@ -72,30 +72,33 @@ FileShareTemplate = {
           </div>`;
   },
 
-  shareProgress: function() {
-    return `<div class="top-wrapper">
-              <div class="fileshare-progress">
-                  <div class="media-icon">
-                      <img src="./img/media-icon.svg"/>
-                  </div>
-                  <div class="progressbar">
-                      <div class="file-name">${filename}</div>
-                      <div class="main-bar">
-                          <span class="sub-bar" style="width: 0%;"></span>
+  shareProgress: function(connId, filename, status, size, isCurrentUser) {
+    var buttons = isCurrentUser
+      ? `<div id="cancelBtn" class="button cancel-btn">Cancel</div>`
+      : `<div id="acceptBtn" class="button accept-btn">Accept</div>
+                   <div id="declineBtn" class="button cancel-btn">Decline</div>`;
+
+    return `<div class="fileshare" shareId=${connId}>
+              <div class="top-wrapper">
+                <div class="fileshare-progress">
+                    <div class="media-icon">
+                        <img src="./img/media-icon.svg"/>
+                    </div>
+                    <div class="progressbar">
+                        <div class="file-name">${filename}</div>
+                        <div class="share-percentage">size : ${size}</div>
+                    </div>
+                </div>
+              </div>
+              <div class="bottom-wrapper">
+                  <div class="fileshare-statusbar">
+                      <span id="fileshare-state">${status}</span>
+                      <div class="fileshare-btn">
+                          ${buttons}
                       </div>
-                      <div class="share-percentage">${percentage}</div>
                   </div>
               </div>
-          </div>
-          <div class="bottom-wrapper">
-              <div class="fileshare-statusbar">
-                  <span id="fileshare-state">${status}</span>
-                  <div class="fileshare-btn">
-                      <div class="button accept-btn">Accept</div>
-                      <div class="button cancel-btn">Cancel</div>
-                  </div>
-              </div>
-          </div>`;
+            </div>`;
   }
 };
 
@@ -201,7 +204,7 @@ userProfileImpl = {
         if (confirm(`Do you want to close this chat ?`)) {
           $fshare.currentChatUserId = "";
           $(`.right-pannel`).empty();
-          // get out of the room
+          socket.emit("leaveRoom", { id });
         }
       });
     });

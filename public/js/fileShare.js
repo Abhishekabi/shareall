@@ -2,6 +2,7 @@ var FileShareSession = {};
 var FileShareEventHandler = {};
 var FileShare = {};
 var FileShareAPI = {};
+var FileShareImpl = {};
 
 var FileShareSession = function(
   connectionId,
@@ -40,6 +41,10 @@ FileShareSession.prototype = {
     return this.isCurrentUser() ? this._receiverId : this._senderId;
   },
 
+  getPeerUserName: function() {
+    return this._receiverName;
+  },
+
   isCurrentUser: function() {
     return this._senderId === $user.uid;
   },
@@ -74,7 +79,7 @@ FileShareSession.prototype = {
     this._metaData.forEach(function(file) {
       size += file.size;
     });
-    return $Util.getFileSize(size);
+    return (size / 1024 / 1024).toFixed(2) + "MB";
   },
 
   initiateSession: function() {
@@ -236,7 +241,7 @@ FileShareEventHandler = {
     accept: function(connId) {
       var fileShareSession = FileShare.getSession(connId);
       if (typeof fileShareSession !== "undefined") {
-        // FileShareImpl.updateContent(connectionId);
+        FileShareImpl.updateContent(connId);
         fileShareSession.initiateSession();
       }
     },
@@ -244,12 +249,11 @@ FileShareEventHandler = {
     decline: function(connId) {
       var fileShareSession = FileShare.getSession(connId);
       if (typeof fileShareSession !== "undefined") {
-        // var receiverName = Users.getName(fileShareSession.getPeerUserId());
-        // var text = Resource.getRealValue("fileshare.rejected",[receiverName]);
-        // FileShareImpl.updateState(connectionId, text);
-        // FileShareImpl.showFailedRipple(connectionId);
-        // var elementId = fileShareSession.getCurrentFileShareElementId();
-        // FileShareImpl.updateBtn(elementId);
+        var receiverName = fileShareSession.getPeerUserName();
+        FileShareImpl.updateState(
+          connId,
+          `${receiverName} has rejected the fileshare`
+        );
         fileShareSession.close();
       }
     },
@@ -285,9 +289,10 @@ FileShareEventHandler = {
         turnCredentials
       );
       FileShare.addSession(connectionId, fileShareSession);
-      // var text = Resource.getRealValue("fileshare.sending",[peername, metaData.length]);
-      // var elementId = fileShareSession.getCurrentFileShareElementId();
-      // FileShareImpl.initialize(elementId, connectionId, text);
+      FileShareImpl.initiateShare(
+        connectionId,
+        `${peername} is sending ${metaData.length} files...`
+      );
     },
 
     transfer_completed: function(connId) {
@@ -308,7 +313,8 @@ FileShareEventHandler = {
 
   UIEvents: {
     acceptFileShare: function(connectionId) {
-      // FileShareImpl.updateContent(connectionId);
+      FileShareImpl.updateContent(connectionId);
+      FileShareImpl.updateBtn(connectionId);
       FileShareAPI.accept(connectionId);
     },
 
@@ -376,17 +382,10 @@ FileShare = {
       turnCredentials
     );
     FileShare.addSession(connectionId, fileShareSession);
-
-    // var elementId = fileShareSession.getCurrentFileShareElementId();
-    // var text = Resource.getRealValue("fileshare.waiting",[peername,metaData.length]);
-    // FileShareImpl.initialize(elementId, connectionId, text);
-
-    // if($DB.get("contacts")[recipant].status == $zcg.OFFLINE)
-    // {
-    // 	var text = Resource.getRealValue("fileshare.useroffline");
-    // 	FileShareImpl.updateState(connectionId, text);
-    // 	FileShareImpl.showFailedRipple(connectionId);
-    // }
+    FileShareImpl.initiateShare(
+      connectionId,
+      `waiting for ${peername} to accept ${metaData.length} files...`
+    );
   },
 
   constructMetaData: function(files) {
@@ -490,7 +489,7 @@ FileShareAPI = {
         socket.emit("serverListening", {
           connectionId,
           purpose: "new_session",
-          param: { turnCredentials, peer, files: metaData }
+          param: { turnCredentials, peer: $user.uid, files: metaData }
         });
         FileShare.startSession(
           { connId: connectionId, data: turnCredentials, files: metaData },
@@ -499,5 +498,73 @@ FileShareAPI = {
         );
       }
     });
+  }
+};
+
+FileShareImpl = {
+  initiateShare: function(connId, text) {
+    var fileShareSession = FileShare.getSession(connId);
+    var html = FileShareTemplate.shareProgress(
+      connId,
+      fileShareSession.getFileName(),
+      text,
+      fileShareSession.getTotalFileSize(),
+      fileShareSession.isCurrentUser()
+    );
+    $(".main-pannel").append(html);
+    this.bindButtonEvents(connId);
+  },
+  bindButtonEvents: function(shareId) {
+    var ele = $(`[shareId=${shareId}]`);
+    ele
+      .find("#cancelBtn")
+      .on("click", () =>
+        FileShareEventHandler.UIEvents.closeFileShare(shareId)
+      );
+    ele
+      .find("#acceptBtn")
+      .on("click", () =>
+        FileShareEventHandler.UIEvents.acceptFileShare(shareId)
+      );
+    ele
+      .find("#declineBtn")
+      .on("click", () =>
+        FileShareEventHandler.UIEvents.rejectFileShare(shareId)
+      );
+  },
+  updateContent: function(shareId) {
+    var fileShareSession = FileShare.getSession(shareId);
+    var ele = $(`[shareId=${shareId}]`);
+    var state = fileShareSession.isCurrentUser()
+      ? "Sending Files..."
+      : "Receiving Files...";
+    this.updateState(shareId, state);
+    ele.find(".file-name").after(`<div class="main-bar">
+                                    <span class="sub-bar" style="width: 0%;"></span>
+                                  </div>`);
+  },
+  updateProgressBar: function(shareId, sentChunks, totalChunks) {
+    var ele = $(`[shareId=${shareId}]`);
+    var percentage = (sentChunks / totalChunks) * 100;
+    ele
+      .find(".progressbar > .share-percentage")
+      .text(percentage.toFixed(1) + "%");
+    ele.find(".main-bar > span").css("width", percentage.toFixed(2) + "%");
+  },
+  updateState: function(shareId, state) {
+    var ele = $(`[shareId=${shareId}]`);
+    ele.find("#fileshare-state").text(state);
+  },
+  updateBtn: function(shareId) {
+    var ele = $(`[shareId=${shareId}]`);
+    ele
+      .find(".fileshare-btn")
+      .empty()
+      .append(`<div id="cancelBtn" class="button cancel-btn">Cancel</div>`);
+    ele
+      .find("#cancelBtn")
+      .on("click", () =>
+        FileShareEventHandler.UIEvents.closeFileShare(shareId)
+      );
   }
 };

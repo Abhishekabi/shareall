@@ -111,6 +111,13 @@ io.on("connection", socket => {
     }
   });
 
+  socket.on("leaveRoom", data => {
+    var uid = data.id;
+    if (io.nsps["/"].adapter.rooms["room-" + uid]) {
+      socket.leave("room-" + uid);
+    }
+  });
+
   socket.on("serverListening", data => {
     console.log(data);
     socket.broadcast.to(data.connectionId).emit("clientListening", data); // broadcast to everyone in the room
