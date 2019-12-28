@@ -319,14 +319,12 @@ FileShareEventHandler = {
     },
 
     closeFileShare: function(connectionId) {
-      // var elementId = FileShare.getSession(connectionId).getCurrentFileShareElementId();
-      // FileShareImpl.removeUI($("#file"+elementId));
+      $(`[shareId=${connectionId}]`).remove();
       FileShareAPI.terminate(connectionId);
     },
 
     rejectFileShare: function(connectionId) {
-      // var elementId = FileShare.getSession(connectionId).getCurrentFileShareElementId();
-      // FileShareImpl.removeUI($("#file"+elementId));
+      $(`[shareId=${connectionId}]`).remove();
       FileShareAPI.decline(connectionId);
     }
   }
@@ -344,7 +342,7 @@ FileShare = {
   removeSession: function(connectionId) {
     var fileShareSession = FileShare.getSession(connectionId);
     if (typeof fileShareSession !== "undefined") {
-      // remove UI
+      $(`[shareId=${connectionId}]`).remove();
       FileShare.resetForm(fileShareSession.isCurrentUser());
       delete this._activeSessions[connectionId];
     }
