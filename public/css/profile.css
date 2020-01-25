@@ -294,3 +294,11 @@ input:focus {
   border-radius: 4px;
   transition: width 0.3s linear;
 }
+
+.file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  display: block;
+  text-overflow: ellipsis;
+  width: 450px;
+}
