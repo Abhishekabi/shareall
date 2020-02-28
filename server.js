@@ -1,4 +1,4 @@
-var global = {}; // socketid vs uid
+var _global = {}; // socketid vs uid
 const express = require("express");
 const bodyParser = require("body-parser");
 const path = require("path");
@@ -94,7 +94,7 @@ io.on("connection", socket => {
 
   socket.on("createRoom", data => {
     var uid = data.id;
-    global[socket.id] = uid;
+    _global[socket.id] = uid;
     helper.setOnline(uid, true, socket);
     if (!io.nsps["/"].adapter.rooms["room-" + uid]) {
       socket.join("room-" + uid);
@@ -126,16 +126,17 @@ io.on("connection", socket => {
 
 var helper = {
   removeSocketById: function(socketId) {
-    for (let [sid, uid] of Object.entries(global)) {
+    for (let [sid, uid] of Object.entries(_global)) {
       if (socketId == sid) {
-        delete global[socketId];
+        delete _global[socketId];
         return uid;
       }
     }
+    console.log(_global);
   },
 
   hasOtherSession: function(userId) {
-    for (let [sid, uid] of Object.entries(global)) {
+    for (let [sid, uid] of Object.entries(_global)) {
       if (uid == userId) return true;
     }
     return false;

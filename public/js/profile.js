@@ -185,7 +185,7 @@ userProfileImpl = {
       var html = FileShareTemplate.shareArea(uid, name, name.charAt(0));
       $(".right-pannel").empty();
       $(".right-pannel").append(html);
-      socket.emit("join", { id: $fshare.currentChatUserId });
+      // socket.emit("join", { id: $fshare.currentChatUserId });
       // bind filepicker event
       $("#file-upload").on("change", function(event) {
         file = event.target.files;
@@ -196,15 +196,17 @@ userProfileImpl = {
           console.log("File is empty, please select a non-empty file");
           return;
         } else {
+          socket.emit("join", { id: $fshare.currentChatUserId });
           FileShare.initiate($fshare.currentChatUserId, file);
         }
       });
       // handle close btn click
       $(".close-chat-btn").on("click", event => {
         if (confirm(`Do you want to close this chat ?`)) {
+          var id = $fshare.currentChatUserId;
+          socket.emit("leaveRoom", { id });
           $fshare.currentChatUserId = "";
           $(`.right-pannel`).empty();
-          socket.emit("leaveRoom", { id });
         }
       });
     });

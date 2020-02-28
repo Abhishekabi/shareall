@@ -509,7 +509,10 @@ FileShareImpl = {
       fileShareSession.getTotalFileSize(),
       fileShareSession.isCurrentUser()
     );
-    $(".main-pannel").append(html);
+    $("body").append(html);
+    $(`[shareId=${connId}]`).draggable({
+      containment: "window"
+    });
     this.bindButtonEvents(connId);
   },
   bindButtonEvents: function(shareId) {
