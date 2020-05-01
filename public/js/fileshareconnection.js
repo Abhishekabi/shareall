@@ -42,7 +42,14 @@
  * remoteIcecandidate - candidate from the remote peer
  */
 
-var FileShareRTCConnection = function(
+WebRTCPeerConnectionConstants = {
+  iceConnectionStates: {
+    CONNECTED: "connected",
+    FAILED: "failed",
+    DISCONNECTED: "disconnected",
+  },
+};
+var FileShareRTCConnection = function (
   connectionId,
   hostId,
   handler,
@@ -70,18 +77,24 @@ var FileShareRTCConnection = function(
   this._files = files;
   this._isIceRestart = false;
   this._currentFileChunk = 0;
-  this._eightBitCounter = 0; // Since uIntArrayBuffer can only store eightBit numbers
+  this._tempCounter = 0; // updates for every 256 chunks (as chunk id is received in 8bit)
   this._dataBuffer = [];
   this._reconnectionAttempts = 0;
 
   this._isReconnecting = false;
   this._reconnectInterval = undefined;
 
+  //For calculating data rate (no interval is used, so may be showing last transfer rate)
+  this._lastUpdatedChunkId = 0;
+  this._lastUpdatedTime = Date.now();
+  this._averageRate = 0;
+  this._remainingTime = -1;
+
   this._initialize();
 };
 
 FileShareRTCConnection.prototype = {
-  _initialize: function() {
+  _initialize: function () {
     if (!this._connection) {
       this._connection = new RTCPeerConnection(this._getConfiguration());
     }
@@ -97,13 +110,13 @@ FileShareRTCConnection.prototype = {
     }
   },
 
-  _bindEventHandlers: function() {
+  _bindEventHandlers: function () {
     //To send the offer/answer in the first ice candidate
     var hasSentSdp = false;
     var peerConnection = this._connection;
 
     //event - RTCPeerConnectionIceEvent
-    var onIceCandidateCallBack = function(event) {
+    var onIceCandidateCallBack = function (event) {
       //RTCIceCandidate
       var iceCandidate = event.candidate;
 
@@ -135,50 +148,85 @@ FileShareRTCConnection.prototype = {
       }
     }.bind(this);
 
-    var onIceConnectionStateChangeCallBack = function(event) {
+    var onIceConnectionStateChangeCallBack = function (event) {
       var state = peerConnection.iceConnectionState;
 
-      if (state == "connected") {
-        console.log("RTC Connected");
+      if (
+        WebRTCPeerConnectionConstants.iceConnectionStates.CONNECTED == state
+      ) {
         this._handler.handleConnected(this._connectionId, this._isReconnecting);
         this._isReconnecting = false;
         clearInterval(this._reconnectInterval);
         this._reconnectInterval = undefined;
-      } else if (state == "failed") {
+      } else if (
+        WebRTCPeerConnectionConstants.iceConnectionStates.FAILED == state
+      ) {
         // to update FileShare UI
-        console.log("RTC Failed");
-
-        this._handler.handleFailed(this._connectionId);
+        this._handler.handleNetworkError(this._connectionId);
         this._bindEventHandlers();
         var that = this;
         this._reconnect();
 
         // try reconnection for every 30 seconds
         clearInterval(this._reconnectInterval);
-        this._reconnectInterval = setInterval(function() {
+        this._reconnectInterval = setInterval(function () {
           that._reconnect();
-        }, 30000);
+        }, FileShareConstants.reconnectionInterval);
+      }
+    }.bind(this);
+
+    /*
+     * Temporary fix to resolve chrome (M75) issue.
+     * Connected event not received in oniceconnectionstatechange in reconnect
+     * Failed event not received in oniceconnectionstatechange for connection failure after the first reconnection success
+     */
+    var onConnectionStateChangeCallBack = function (event) {
+      var state = peerConnection.connectionState;
+
+      if (
+        WebRTCPeerConnectionConstants.iceConnectionStates.CONNECTED == state
+      ) {
+        this._handler.handleConnected(this._connectionId, this._isReconnecting);
+        this._isReconnecting = false;
+        clearInterval(this._reconnectInterval);
+        this._reconnectInterval = undefined;
+      } else if (
+        WebRTCPeerConnectionConstants.iceConnectionStates.FAILED == state
+      ) {
+        // to update FileShare UI
+        this._handler.handleNetworkError(this._connectionId);
+        this._bindEventHandlers();
+        var that = this;
+        this._reconnect();
+
+        // try reconnection for every 30 seconds
+        clearInterval(this._reconnectInterval);
+        this._reconnectInterval = setInterval(function () {
+          that._reconnect();
+        }, FileShareConstants.reconnectionInterval);
       }
     }.bind(this);
 
     peerConnection.onicecandidate = onIceCandidateCallBack;
     peerConnection.oniceconnectionstatechange = onIceConnectionStateChangeCallBack;
+    peerConnection.onconnectionstatechange = onConnectionStateChangeCallBack;
     if (!this.isOfferer) {
-      peerConnection.ondatachannel = function(event) {
+      peerConnection.ondatachannel = function (event) {
+        FileShareImpl.updateFileInfo(this._connectionId);
         this._createDataChannel(event.channel);
       }.bind(this);
     }
   },
 
-  _reconnect: function() {
+  _reconnect: function () {
     this._isReconnecting = true;
     this._reconnectionAttempts++;
-    if (this._reconnectionAttempts > 3) {
+    if (this._reconnectionAttempts >= FileShareConstants.reconnectionAttempts) {
       this.close();
+      this._handler.handleFailed(this._connectionId);
       return;
     } else if (this._isOfferer) {
       this._isIceRestart = true;
-      this._initialize();
     }
     this._handler.handleRetry(
       this._connectionId,
@@ -187,7 +235,7 @@ FileShareRTCConnection.prototype = {
     );
   },
 
-  _createOffer: function() {
+  _createOffer: function () {
     var sdpConstraints = {};
 
     if (this._isIceRestart) {
@@ -197,13 +245,13 @@ FileShareRTCConnection.prototype = {
     var peerConnection = this._connection;
     var that = this;
 
-    peerConnection.createOffer(sdpConstraints).then(function(offer) {
+    peerConnection.createOffer(sdpConstraints).then(function (offer) {
       that._localSDP = offer;
       peerConnection.setLocalDescription(offer);
     });
   },
 
-  _createAnswer: function() {
+  _createAnswer: function () {
     var sdpConstraints = {};
     var peerConnection = this._connection;
     var that = this;
@@ -212,15 +260,16 @@ FileShareRTCConnection.prototype = {
       .setRemoteDescription(
         this._getRTCSessionDescriptionObj("offer", this._remoteSDP)
       )
-      .then(function() {
-        peerConnection.createAnswer(sdpConstraints).then(function(answer) {
+      .then(function () {
+        //NO I18N
+        peerConnection.createAnswer(sdpConstraints).then(function (answer) {
           that._localSDP = answer;
           peerConnection.setLocalDescription(answer);
         });
       });
   },
 
-  setRemoteDescription: function(type, remoteSdp, remoteIceCandidate) {
+  setRemoteDescription: function (type, remoteSdp, remoteIceCandidate) {
     if (typeof remoteIceCandidate != "undefined") {
       this._remoteIcecandidate = remoteIceCandidate;
     }
@@ -228,12 +277,16 @@ FileShareRTCConnection.prototype = {
     var that = this;
     this._connection
       .setRemoteDescription(this._getRTCSessionDescriptionObj(type, remoteSdp))
-      .then(function() {
+      .then(function () {
         that.addRemoteIceCandidate();
       });
   },
 
-  setRemoteDescriptionAndAnswer: function(type, remoteSdp, remoteIcecandidate) {
+  setRemoteDescriptionAndAnswer: function (
+    type,
+    remoteSdp,
+    remoteIcecandidate
+  ) {
     // to set sdp and answer in retry cases
     this._isIceRestart = true;
     if (typeof remoteIcecandidate != "undefined") {
@@ -244,32 +297,32 @@ FileShareRTCConnection.prototype = {
     var that = this;
     this._connection
       .setRemoteDescription(this._getRTCSessionDescriptionObj(type, remoteSdp))
-      .then(function() {
+      .then(function () {
         that.addRemoteIceCandidate();
-        peerConnection.createAnswer().then(function(answer) {
+        peerConnection.createAnswer().then(function (answer) {
           that._localSDP = answer;
           peerConnection.setLocalDescription(answer);
         });
       });
   },
 
-  setRemoteIcecandidate: function(remoteIcecandidate) {
+  setRemoteIcecandidate: function (remoteIcecandidate) {
     this._remoteIcecandidate = remoteIcecandidate;
     this.addRemoteIceCandidate();
   },
 
-  addRemoteIceCandidate: function() {
+  addRemoteIceCandidate: function () {
     var peerConnection = this._connection;
     peerConnection.addIceCandidate(
       new RTCIceCandidate(this._remoteIcecandidate)
     );
   },
 
-  _getRTCSessionDescriptionObj: function(type, remoteSdp) {
+  _getRTCSessionDescriptionObj: function (type, remoteSdp) {
     return new RTCSessionDescription({ type: type, sdp: remoteSdp });
   },
 
-  close: function() {
+  close: function () {
     clearInterval(this._reconnectInterval);
     this._reconnectInterval = undefined;
 
@@ -289,7 +342,7 @@ FileShareRTCConnection.prototype = {
     this._localSDP = undefined;
   },
 
-  _getConfiguration: function() {
+  _getConfiguration: function () {
     var turnServerUrl = this._turnCredentials.url;
     var userName = this._turnCredentials.username;
     var credential = this._turnCredentials.credential;
@@ -298,60 +351,99 @@ FileShareRTCConnection.prototype = {
     iceServers.push({
       urls: turnServerUrl,
       username: userName,
-      credential: credential
+      credential: credential,
     });
 
     var configuration = { iceServers: iceServers };
     return configuration;
   },
 
-  _createDataChannel: function(channel) {
+  _getTransferRateDetails: function () {
+    if (this._currentFileChunk > this._lastUpdatedChunkId) {
+      var currentRate =
+        FileShare.BYTES_PER_CHUNK *
+        (this._currentFileChunk - this._lastUpdatedChunkId);
+      //Adding weightage to existing rate
+      this._averageRate = (
+        ((this._averageRate > 0 ? this._averageRate : currentRate) * 7 +
+          currentRate * 3) /
+        10
+      ).toFixed(2);
+    }
+
+    var fileShareSession = FileShare.getSession(this._connectionId);
+    var currentFileIndex = fileShareSession.getCurrentFileIndex();
+
+    var filesDetails = fileShareSession.getMetaData(); //No i18n
+    var remainingBytes =
+      filesDetails[currentFileIndex].size -
+      FileShare.BYTES_PER_CHUNK * this._currentFileChunk;
+
+    for (var i = currentFileIndex + 1; i < filesDetails.length; i++) {
+      remainingBytes += filesDetails[i].size;
+    }
+
+    this._remainingTime =
+      this._averageRate > 0
+        ? Math.floor((remainingBytes / this._averageRate) * 1000)
+        : -1;
+    this._lastUpdatedTime = Date.now();
+
+    //Rate in bytes per second and estimated remaining time in milliseconds
+    return { rate: this._averageRate, remaining_time: this._remainingTime };
+  },
+
+  _createDataChannel: function (channel) {
     if (this._dataChannel) {
       this._dataChannel.close();
       this._dataChannel = undefined;
     }
     if (this._isOfferer) {
-      this._dataChannel = this._connection.createDataChannel("sendChannel");
-      this._dataChannel.binaryType = "arraybuffer";
+      this._dataChannel = this._connection.createDataChannel("sendChannel"); //NO I18N
+      this._dataChannel.binaryType = "arraybuffer"; //NO I18N
       this._dataChannel.bufferedAmountLowThreshold = 15 * 1024 * 1024;
       // dataChannel events
-      this._dataChannel.onopen = function() {
+      this._dataChannel.onopen = function () {
+        this._isIceRestart = false;
+        FileShareImpl.updateFileInfo(this._connectionId);
         this._sendFiles();
       }.bind(this);
 
-      this._dataChannel.onbufferedamountlow = function() {
-        this._sendFiles();
+      this._dataChannel.onbufferedamountlow = function () {
+        if (!this._isIceRestart) {
+          this._sendFiles();
+        }
       }.bind(this);
     } else {
       this._dataChannel = channel;
-      this._dataChannel.binaryType = "arraybuffer";
-      this._dataChannel.onmessage = function(event) {
+      this._dataChannel.binaryType = "arraybuffer"; //NO I18N
+      this._dataChannel.onmessage = function (event) {
+        this._isIceRestart = false;
         this._receiveFiles(event.data);
       }.bind(this);
     }
   },
 
-  _sendFiles: function() {
-    var peerConnection = this._connection;
+  _sendFiles: function () {
     var bytesPerChunk = FileShare.BYTES_PER_CHUNK;
-    var files = this._files;
     var fileReader = new FileReader();
     var fileShareSession = FileShare.getSession(this._connectionId);
-    var fileIndex = fileShareSession.getCurrentFileIndex();
 
-    var readNextChunk = function(file) {
+    var readNextChunk = function (file) {
       var start = bytesPerChunk * this._currentFileChunk;
       var end = Math.min(file.size, start + bytesPerChunk);
       fileReader.readAsArrayBuffer(file.slice(start, end));
     }.bind(this);
 
-    var fileReaderOnLoad = function(event) {
+    var fileReaderOnLoad = function (event) {
       var data = event.target.result;
-      if (typeof fileShareSession == "undefined" || files.length <= 0) {
+      var totalFiles = fileShareSession.getFilesCount();
+      if (typeof fileShareSession == "undefined" || totalFiles <= 0) {
         return;
       }
-      var currIndex = fileIndex + 1;
-      // FileShareImpl.updateFileInfo(this._connectionId);
+      var files = fileShareSession.getMetaData();
+      var fileIdVsFile = fileShareSession.getSelectedFiles();
+      var fileIndex = fileShareSession.getCurrentFileIndex();
 
       var totalChunks = Math.ceil(files[fileIndex].size / bytesPerChunk);
       var sendChannel = this._dataChannel;
@@ -361,114 +453,123 @@ FileShareRTCConnection.prototype = {
 
       // buffer amount must not exceed more than 15 Mb, because datachannel closes when buffer overflows.
       if (
-        sendChannel &&
+        typeof sendChannel !== "undefined" &&
         sendChannel.readyState == "open" &&
         sendChannel.bufferedAmount < 15 * 1024 * 1024
       ) {
         sendChannel.send(toSend.buffer);
-        FileShareImpl.updateProgressBar(
-          this._connectionId,
-          this._currentFileChunk,
-          totalChunks
-        );
+
+        if (Date.now() - this._lastUpdatedTime > 1000) {
+          FileShareImpl.updateProgressBar(
+            this._connectionId,
+            this._currentFileChunk,
+            totalChunks,
+            this._getTransferRateDetails()
+          );
+          this._lastUpdatedChunkId = this._currentFileChunk;
+        }
       } else {
         return;
       }
+
       this._currentFileChunk++;
 
       var bytesSent = bytesPerChunk * this._currentFileChunk;
       // check if a file is sent completely
       if (bytesSent < files[fileIndex].size) {
-        readNextChunk(files[fileIndex]);
+        readNextChunk(fileIdVsFile[fileShareSession.getCurrentFileId()]);
       } else {
-        fileIndex = fileShareSession.updateFileIndex();
         // check if there is any files in queue
-        if (fileIndex < files.length) {
-          this._currentFileChunk = 0;
-          readNextChunk(files[fileIndex]);
+        if (fileIndex == totalFiles - 1) {
+          return;
         }
-        console.log("send success...");
+        fileShareSession.updateFileIndex();
+        FileShareImpl.updateFileInfo(this._connectionId);
+        this._currentFileChunk = 0;
+        readNextChunk(fileIdVsFile[fileShareSession.getCurrentFileId()]);
       }
     }.bind(this);
 
     fileReader.onload = fileReaderOnLoad;
-    readNextChunk(files[fileIndex]);
+    var fileIdVsFile = fileShareSession.getSelectedFiles();
+    readNextChunk(fileIdVsFile[fileShareSession.getCurrentFileId()]);
   },
 
-  _receiveFiles: function(receivedData) {
+  _receiveFiles: function (receivedData) {
     var fileShareSession = FileShare.getSession(this._connectionId);
     if (typeof fileShareSession == "undefined") {
       return;
     }
     var fileIndex = fileShareSession.getCurrentFileIndex();
-    var currIndex = fileIndex + 1;
     var metadata = fileShareSession.getMetaData();
-    // FileShareImpl.updateFileInfo(this._connectionId);
     var totalChunks = Math.ceil(
       metadata[fileIndex].size / FileShare.BYTES_PER_CHUNK
     );
     var received = new Uint8Array(receivedData);
-    var chunkIdReceived = received[0];
+    var eightBitChunkId = received[0];
+    var chunkIdReceived = eightBitChunkId + this._tempCounter * 256;
 
-    if (chunkIdReceived == this._eightBitCounter) {
+    if (chunkIdReceived == this._currentFileChunk) {
       var dataChunk = received.slice(1).buffer;
-      this._dataBuffer.push(dataChunk);
-      FileShareImpl.updateProgressBar(
-        this._connectionId,
-        this._currentFileChunk,
-        totalChunks
-      );
+      if (FileShare.isFileSystemNeeded(metadata[fileIndex].size)) {
+        this._handler.handleFileSystemWrite(
+          this._connectionId,
+          dataChunk,
+          this._currentFileChunk
+        );
+      } else {
+        this._dataBuffer.push(dataChunk);
+      }
+
+      if (Date.now() - this._lastUpdatedTime > 1000) {
+        FileShareImpl.updateProgressBar(
+          this._connectionId,
+          this._currentFileChunk,
+          totalChunks,
+          this._getTransferRateDetails()
+        );
+        this._lastUpdatedChunkId = this._currentFileChunk;
+      }
+
       this._currentFileChunk++;
-      this._eightBitCounter++;
-      if (chunkIdReceived == 255) {
-        this._eightBitCounter = 0;
+      if (eightBitChunkId == 255) {
+        this._tempCounter++;
       }
     } else {
       return;
     }
     // check if file is completely received
     if (this._currentFileChunk == totalChunks) {
-      if (fileIndex == metadata.length - 1) {
-        // All files are received successfully so send acknowledgement to receiver
-        console.log("received successfully...");
-        this._handler.handleSent(this._connectionId);
-      }
       var file = metadata[fileIndex];
       const received = new Blob(this._dataBuffer);
-
-      // automatically downloads the file
-      if (navigator.msSaveBlob) {
-        // For ie and Edge
-        return navigator.msSaveBlob(received, file.name);
+      if (FileShare.isFileSystemNeeded(metadata[fileIndex].size)) {
+        fileShareSession.downloadFromFileSystem(file.file_id, file.name);
       } else {
-        var link = document.createElement("a");
-        link.href = URL.createObjectURL(received);
-        link.download = file.name;
-        document.body.appendChild(link);
-        link.dispatchEvent(
-          new MouseEvent("click", {
-            bubbles: true,
-            cancelable: true,
-            view: window
-          })
-        );
-        link.remove();
-        URL.revokeObjectURL(link.href);
+        if (navigator.msSaveBlob) {
+          // For ie and Edge
+          return navigator.msSaveBlob(received, file.name);
+        } else {
+          FileShare.downloadFromURL(URL.createObjectURL(received), file.name);
+        }
       }
-
+      if (fileIndex == metadata.length - 1) {
+        this.handler.handleTransferCompleted(this._connectionId);
+        return;
+      }
       // reset values for next file
       this._dataBuffer = [];
       this._currentFileChunk = 0;
-      this._eightBitCounter = 0;
-      fileIndex = fileShareSession.updateFileIndex();
+      this._tempCounter = 0;
+      fileShareSession.updateFileIndex();
+      FileShareImpl.updateFileInfo(this._connectionId);
     }
   },
 
-  retryFileShare: function(fileIndex, chunkId) {
+  retryFileShare: function (fileIndex, chunkId) {
     this._currentFileChunk = chunkId;
     var fileShareSession = FileShare.getSession(this._connectionId);
-    fileShareSession.updateFileIndex();
+    fileShareSession.updateFileIndex(fileIndex);
     this._isIceRestart = true;
     this._initialize();
-  }
+  },
 };
