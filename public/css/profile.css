@@ -309,3 +309,37 @@ input:focus {
   text-overflow: ellipsis;
   width: 450px;
 }
+
+.clr-p {
+  color: #8b9aa1;
+}
+
+.wheader {
+  font-size: 70px;
+  font-family: "Nunito Sans", sans-serif;
+}
+
+.wdesc {
+  margin-top: 20px;
+  font-size: 25px;
+  font-family: "Nunito Sans", sans-serif;
+  line-height: 40px;
+}
+
+.mailer {
+  margin-top: 20px;
+}
+
+.mailer > input[type="text"] {
+  border: 1px solid gray;
+}
+
+.mail-btn {
+  background-color: #61234e;
+  padding: 15px 30px;
+  border-radius: 70px;
+}
+
+.welcome-pane {
+  margin: 60px;
+}
