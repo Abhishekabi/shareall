@@ -553,7 +553,7 @@ FileShareRTCConnection.prototype = {
         }
       }
       if (fileIndex == metadata.length - 1) {
-        this.handler.handleTransferCompleted(this._connectionId);
+        this._handler.handleTransferCompleted(this._connectionId);
         return;
       }
       // reset values for next file
